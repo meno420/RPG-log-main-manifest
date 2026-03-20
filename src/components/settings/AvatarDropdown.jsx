@@ -23,14 +23,40 @@
  *
  * Estilos: SettingsScreen.css (.dropdown-panel, .dp-item, .dp-header)
  */
+/**
+ * AvatarDropdown.jsx — Menú desplegable del avatar
+ */
+import { useState, useEffect } from "react";
+
 export default function AvatarDropdown({ setActivePage, setShowDropdown, unreadCount, user }) {
   const go = (page) => { setActivePage(page); setShowDropdown(false); };
+
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") setCanInstall(false);
+    setDeferredPrompt(null);
+    setShowDropdown(false);
+  };
 
   return (
     <div className="dropdown-panel">
       <div className="dp-corner-bl" />
       <div className="dp-corner-br" />
-
       {/* User header */}
       <div className="dp-header">
         <div className="dp-header-top">
@@ -42,20 +68,17 @@ export default function AvatarDropdown({ setActivePage, setShowDropdown, unreadC
         </div>
         <div className="dp-level">NIVEL {user.level} · 🪙 {user.coins.toLocaleString()}</div>
       </div>
-
       {/* Menu items */}
       <button className="dp-item" onClick={() => go("settings-profile")}>
         <span className="dp-item-icon">🧙</span>
         <span className="dp-item-label">PERFIL Y AVATAR</span>
         <span className="dp-item-arrow">›</span>
       </button>
-
       <button className="dp-item" onClick={() => go("settings-wallet")}>
         <span className="dp-item-icon">🪙</span>
         <span className="dp-item-label">MONEDERO</span>
         <span className="dp-item-arrow">›</span>
       </button>
-
       <button className="dp-item" onClick={() => go("settings-notifs")}>
         <span className="dp-item-icon">🔔</span>
         <span className="dp-item-label">NOTIFICACIONES</span>
@@ -64,7 +87,14 @@ export default function AvatarDropdown({ setActivePage, setShowDropdown, unreadC
           : <span className="dp-item-arrow">›</span>
         }
       </button>
-
+      {/* Botón instalar PWA */}
+      {canInstall && (
+        <button className="dp-item" onClick={handleInstall}>
+          <span className="dp-item-icon">📲</span>
+          <span className="dp-item-label">INSTALAR APP</span>
+          <span className="dp-item-arrow">›</span>
+        </button>
+      )}
       <button className="dp-item danger" onClick={() => go("settings-logout")}>
         <span className="dp-item-icon">🚪</span>
         <span className="dp-item-label">CERRAR SESIÓN</span>
